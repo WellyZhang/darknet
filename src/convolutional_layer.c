@@ -349,6 +349,7 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
     int out_w = convolutional_out_width(l);
     int i;
 
+    // fill l.output with 0 -- initialization
     fill_cpu(l.outputs*l.batch, 0, l.output, 1);
     /*
     if(l.binary){
@@ -379,9 +380,11 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
         activate_array(l.output, m*n*l.batch, l.activation);
         return;
     }
-
+    // # of filters
     int m = l.n;
+    // # of parameters in each kernel
     int k = l.size*l.size*l.c;
+    // output size of feature map 
     int n = out_h*out_w;
 
     float *a = l.filters;
@@ -391,8 +394,11 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
     for(i = 0; i < l.batch; ++i){
         im2col_cpu(state.input, l.c, l.h, l.w, 
                 l.size, l.stride, l.pad, b);
+        // BLAS's matrix multiplication
         gemm(0,0,m,n,k,1,a,k,b,n,1,c,n);
+        // the next set of image cols
         c += n*m;
+        // the next image
         state.input += l.c*l.h*l.w;
     }
 
@@ -448,11 +454,15 @@ void backward_convolutional_layer(convolutional_layer l, network_state state)
 void update_convolutional_layer(convolutional_layer l, int batch, float learning_rate, float momentum, float decay)
 {
     int size = l.size*l.size*l.c*l.n;
+    // biases updated
     axpy_cpu(l.n, learning_rate/batch, l.bias_updates, 1, l.biases, 1);
+    // bias updates scaled by momentum
     scal_cpu(l.n, momentum, l.bias_updates, 1);
-
+    // weight decay
     axpy_cpu(size, -decay*batch, l.filters, 1, l.filter_updates, 1);
+    // filter parameters updated
     axpy_cpu(size, learning_rate/batch, l.filter_updates, 1, l.filters, 1);
+    // filter updates scaled by momentum
     scal_cpu(size, momentum, l.filter_updates, 1);
 }
 

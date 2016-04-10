@@ -214,6 +214,7 @@ void fill_truth_swag(char *path, float *truth, int classes, int flip, float dx, 
 
 void fill_truth_region(char *path, float *truth, int classes, int num_boxes, int flip, float dx, float dy, float sx, float sy)
 {
+    // read the ground truths from files
     char *labelpath = find_replace(path, "images", "labels");
     labelpath = find_replace(labelpath, "JPEGImages", "labels");
 
@@ -221,13 +222,17 @@ void fill_truth_region(char *path, float *truth, int classes, int num_boxes, int
     labelpath = find_replace(labelpath, ".JPG", ".txt");
     labelpath = find_replace(labelpath, ".JPEG", ".txt");
     int count = 0;
+    // ground truths here; note that left, right, top and bottom also read
     box_label *boxes = read_boxes(labelpath, &count);
+    // shuffle the boxes
     randomize_boxes(boxes, count);
+    // modify the ground truths due to the changes in the images
     correct_boxes(boxes, count, dx, dy, sx, sy, flip);
     float x,y,w,h;
     int id;
     int i;
 
+    // for each box
     for (i = 0; i < count; ++i) {
         x =  boxes[i].x;
         y =  boxes[i].y;
@@ -240,20 +245,24 @@ void fill_truth_region(char *path, float *truth, int classes, int num_boxes, int
         int col = (int)(x*num_boxes);
         int row = (int)(y*num_boxes);
 
+        // offsets with in a specific grid cell
         x = x*num_boxes - col;
         y = y*num_boxes - row;
-
+        // index where the object is located
         int index = (col+row*num_boxes)*(5+classes);
+        // if overlap, skip
         if (truth[index]) continue;
+        // set the confidence
         truth[index++] = 1;
-
+        // set the class-specific probability
         if (id < classes) truth[index+id] = 1;
         index += classes;
-
+        // set the coords
         truth[index++] = x;
         truth[index++] = y;
         truth[index++] = w;
         truth[index++] = h;
+        // truth structure: confidence, class prob, x, y, w, h
     }
     free(boxes);
 }
@@ -464,11 +473,12 @@ data load_data_region(int n, char **paths, int m, int w, int h, int size, int cl
     int i;
     data d;
     d.shallow = 0;
-
+    // n is the batch size while m equals the total number of images
     d.X.rows = n;
     d.X.vals = calloc(d.X.rows, sizeof(float*));
     d.X.cols = h*w*3;
-
+    // note that for each image patch, there is only one ground truth label _NOW_.
+    // hence for each image, there are size * size * (5(one for confidence) + classes) truths
     int k = size*size*(5+classes);
     d.y = make_matrix(n, k);
     for(i = 0; i < n; ++i){
@@ -477,6 +487,7 @@ data load_data_region(int n, char **paths, int m, int w, int h, int size, int cl
         int oh = orig.h;
         int ow = orig.w;
 
+        // here is what jitter means
         int dw = (ow*jitter);
         int dh = (oh*jitter);
 
@@ -484,20 +495,24 @@ data load_data_region(int n, char **paths, int m, int w, int h, int size, int cl
         int pright = rand_uniform(-dw, dw);
         int ptop   = rand_uniform(-dh, dh);
         int pbot   = rand_uniform(-dh, dh);
-
+        // new widths and heights
         int swidth =  ow - pleft - pright;
         int sheight = oh - ptop - pbot;
-
+        // scales
         float sx = (float)swidth  / ow;
         float sy = (float)sheight / oh;
 
         int flip = rand_r(&data_seed)%2;
+        // just a random crop
+        // while zero-padding the borders(if necessary)
         image cropped = crop_image(orig, pleft, ptop, swidth, sheight);
-
+        // shift
         float dx = ((float)pleft/ow)/sx;
         float dy = ((float)ptop /oh)/sy;
-
+        // resize it to the desired size, using iterative linear interpolation
+        // first horizontally then vertically
         image sized = resize_image(cropped, w, h);
+        // horizontally flip the image
         if(flip) flip_image(sized);
         d.X.vals[i] = sized.data;
 

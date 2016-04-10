@@ -77,7 +77,7 @@ void forward_maxpool_layer(const maxpool_layer l, network_state state)
     int b,i,j,k,m,n;
     int w_offset = (-l.size-1)/2 + 1;
     int h_offset = (-l.size-1)/2 + 1;
-
+    // output dimension
     int h = (l.h-1)/l.stride + 1;
     int w = (l.w-1)/l.stride + 1;
     int c = l.c;
@@ -101,6 +101,7 @@ void forward_maxpool_layer(const maxpool_layer l, network_state state)
                             max   = (val > max) ? val   : max;
                         }
                     }
+                    // record both the value and the location
                     l.output[out_index] = max;
                     l.indexes[out_index] = max_i;
                 }
@@ -115,6 +116,7 @@ void backward_maxpool_layer(const maxpool_layer l, network_state state)
     int h = (l.h-1)/l.stride + 1;
     int w = (l.w-1)/l.stride + 1;
     int c = l.c;
+    // wrt the output dimension
     for(i = 0; i < h*w*c*l.batch; ++i){
         int index = l.indexes[i];
         state.delta[index] += l.delta[i];

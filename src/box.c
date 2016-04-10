@@ -238,6 +238,7 @@ typedef struct{
 
 int nms_comparator(const void *pa, const void *pb)
 {
+    // who has the larger prob
     sortable_bbox a = *(sortable_bbox *)pa;
     sortable_bbox b = *(sortable_bbox *)pb;
     float diff = a.probs[a.index][b.class] - b.probs[b.index][b.class];
@@ -249,8 +250,10 @@ int nms_comparator(const void *pa, const void *pb)
 void do_nms_sort(box *boxes, float **probs, int total, int classes, float thresh)
 {
     int i, j, k;
+    // # of total boxes 
     sortable_bbox *s = calloc(total, sizeof(sortable_bbox));
 
+    // initialization
     for(i = 0; i < total; ++i){
         s[i].index = i;       
         s[i].class = 0;
@@ -258,14 +261,22 @@ void do_nms_sort(box *boxes, float **probs, int total, int classes, float thresh
     }
 
     for(k = 0; k < classes; ++k){
+        // for each class
         for(i = 0; i < total; ++i){
             s[i].class = k;
         }
+        // first assume that every box predicts that class
+        // then sort it by the prob
         qsort(s, total, sizeof(sortable_bbox), nms_comparator);
         for(i = 0; i < total; ++i){
+            // skip if the prob of the k_th class in the i_th box is zero
             if(probs[s[i].index][k] == 0) continue;
+
             box a = boxes[s[i].index];
             for(j = i+1; j < total; ++j){
+                // for each box with larger prob
+                // if their IoU is larger than a threshold
+                // skip this box
                 box b = boxes[s[j].index];
                 if (box_iou(a, b) > thresh){
                     probs[s[j].index][k] = 0;

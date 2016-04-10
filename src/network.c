@@ -134,6 +134,7 @@ void forward_network(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         if(l.delta){
+            // initialize l.delta
             scal_cpu(l.outputs * l.batch, 0, l.delta, 1);
         }
         if(l.type == CONVOLUTIONAL){
@@ -220,6 +221,7 @@ float get_network_cost(network net)
             ++count;
         }
     }
+    // average cost of each cost or detection layer
     return sum/count;
 }
 
@@ -284,6 +286,7 @@ void backward_network(network net, network_state state)
 
 float train_network_datum(network net, float *x, float *y)
 {
+    // # of seen images(cases)
     *net.seen += net.batch;
 #ifdef GPU
     if(gpu_index >= 0) return train_network_datum_gpu(net, x, y);
@@ -324,12 +327,16 @@ float train_network(network net, data d)
 {
     int batch = net.batch;
     int n = d.X.rows / batch;
+    // d.X stores the minibatch data
+    // while net.batch = cfg.batch / cfg.subdivision
+    // hence n = cfg.subdivision
     float *X = calloc(batch*d.X.cols, sizeof(float));
     float *y = calloc(batch*d.y.cols, sizeof(float));
 
     int i;
     float sum = 0;
     for(i = 0; i < n; ++i){
+        // get the next sub-minibatch
         get_next_batch(d, batch, i*batch, X, y);
         float err = train_network_datum(net, X, y);
         sum += err;
@@ -337,6 +344,7 @@ float train_network(network net, data d)
     free(X);
     free(y);
     return (float)sum/(n*batch);
+    // return the average minibatch error
 }
 
 float train_network_batch(network net, data d, int n)

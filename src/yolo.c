@@ -19,6 +19,7 @@ void train_yolo(char *cfgfile, char *weightfile)
     srand(time(0));
     data_seed = time(0);
     char *base = basecfg(cfgfile);
+    // base = "yolo-tiny"
     printf("%s\n", base);
     float avg_loss = -1;
     network net = parse_network_cfg(cfgfile);
@@ -27,17 +28,20 @@ void train_yolo(char *cfgfile, char *weightfile)
     }
     printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
     int imgs = net.batch*net.subdivisions;
+    // just batch * time_steps in in the .cfg file
     int i = *net.seen/imgs;
     data train, buffer;
 
 
     layer l = net.layers[net.n - 1];
+    // the last layer
 
     int side = l.side;
     int classes = l.classes;
     float jitter = l.jitter;
 
     list *plist = get_paths(train_images);
+    // a list of paths of training files
     //int N = plist->size;
     char **paths = (char **)list_to_array(plist);
 
@@ -56,6 +60,7 @@ void train_yolo(char *cfgfile, char *weightfile)
     pthread_t load_thread = load_data_in_thread(args);
     clock_t time;
     //while(i*imgs < N*120){
+    // start minibatch training
     while(get_current_batch(net) < net.max_batches){
         i += 1;
         time=clock();
@@ -68,6 +73,7 @@ void train_yolo(char *cfgfile, char *weightfile)
         time=clock();
         float loss = train_network(net, train);
         if (avg_loss < 0) avg_loss = loss;
+        // weird average loss computation
         avg_loss = avg_loss*.9 + loss*.1;
 
         printf("%d: %f, %f avg, %f rate, %lf seconds, %d images\n", i, loss, avg_loss, get_current_rate(net), sec(clock()-time), i*imgs);
@@ -88,19 +94,26 @@ void convert_yolo_detections(float *predictions, int classes, int num, int squar
     int i,j,n;
     //int per_cell = 5*num+classes;
     for (i = 0; i < side*side; ++i){
+        // for each grid cell
         int row = i / side;
         int col = i % side;
         for(n = 0; n < num; ++n){
+            // num = # of boxes
             int index = i*num + n;
+            // get the confidence of the box
             int p_index = side*side*classes + i*num + n;
             float scale = predictions[p_index];
+            // get the starting address of the box
             int box_index = side*side*(classes + num) + (i*num + n)*4;
+            // get the percentage of x and y wrt the whole image
             boxes[index].x = (predictions[box_index + 0] + col) / side * w;
             boxes[index].y = (predictions[box_index + 1] + row) / side * h;
             boxes[index].w = pow(predictions[box_index + 2], (square?2:1)) * w;
             boxes[index].h = pow(predictions[box_index + 3], (square?2:1)) * h;
             for(j = 0; j < classes; ++j){
+                // get the starting address of the box-specific class probs
                 int class_index = i*classes;
+                // confidence * prob
                 float prob = scale*predictions[class_index+j];
                 probs[index][j] = (prob > thresh) ? prob : 0;
             }
@@ -321,9 +334,13 @@ void test_yolo(char *cfgfile, char *weightfile, char *filename, float thresh)
     char buff[256];
     char *input = buff;
     int j;
+    // non-maximum suppresion
     float nms=.5;
+    // l.n stores the number of boxes predicted by each grid cell
     box *boxes = calloc(l.side*l.side*l.n, sizeof(box));
+    // allocation of space for probs in each box in a grid cell 
     float **probs = calloc(l.side*l.side*l.n, sizeof(float *));
+    // note here that pointers, rather than actual numbers are assigneds
     for(j = 0; j < l.side*l.side*l.n; ++j) probs[j] = calloc(l.classes, sizeof(float *));
     while(1){
         if(filename){

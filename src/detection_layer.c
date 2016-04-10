@@ -41,6 +41,7 @@ detection_layer make_detection_layer(int batch, int inputs, int n, int side, int
 
 void forward_detection_layer(const detection_layer l, network_state state)
 {
+    // # of grid cells
     int locations = l.side*l.side;
     int i,j;
     memcpy(l.output, state.input, l.outputs*l.batch*sizeof(float));
@@ -67,14 +68,29 @@ void forward_detection_layer(const detection_layer l, network_state state)
         *(l.cost) = 0;
         int size = l.inputs * l.batch;
         memset(l.delta, 0, size * sizeof(float));
+        // for each image
         for (b = 0; b < l.batch; ++b){
+            // image index(starting address)
             int index = b*l.inputs;
             for (i = 0; i < locations; ++i) {
+                // for each grid cell
                 int truth_index = (b*locations + i)*(1+l.coords+l.classes);
+                // the starting address of the ground truth for the grid cell
+                // in the image
                 int is_obj = state.truth[truth_index];
+                // does this cell contain an object?
                 for (j = 0; j < l.n; ++j) {
+                    // for each box predictor
                     int p_index = index + locations*l.classes + i*l.n + j;
+                    // structure of the predictions:
+                    // class predictions of each gird cell(chunk)
+                    // followed by
+                    // box confidence(chunk)
+                    // followed by
+                    // box info of each cell: coords(chunk)
+                    // note the delta
                     l.delta[p_index] = l.noobject_scale*(0 - l.output[p_index]);
+                    // ground truth confidence is just 0
                     *(l.cost) += l.noobject_scale*pow(l.output[p_index], 2);
                     avg_anyobj += l.output[p_index];
                 }
@@ -83,10 +99,12 @@ void forward_detection_layer(const detection_layer l, network_state state)
                 float best_iou = 0;
                 float best_rmse = 20;
 
+                // if not object, skip from now
                 if (!is_obj){
                     continue;
                 }
 
+                // class starting address
                 int class_index = index + i*l.classes;
                 for(j = 0; j < l.classes; ++j) {
                     l.delta[class_index+j] = l.class_scale * (state.truth[truth_index+1+j] - l.output[class_index+j]);
@@ -96,10 +114,13 @@ void forward_detection_layer(const detection_layer l, network_state state)
                 }
 
                 box truth = float_to_box(state.truth + truth_index + 1 + l.classes);
+                // the ground truth read
                 truth.x /= l.side;
                 truth.y /= l.side;
 
                 for(j = 0; j < l.n; ++j){
+                    // for each box predictor
+                    // select the right box by non-maximum suppression
                     int box_index = index + locations*(l.classes + l.n) + (i*l.n + j) * l.coords;
                     box out = float_to_box(l.output + box_index);
                     out.x /= l.side;
@@ -109,7 +130,7 @@ void forward_detection_layer(const detection_layer l, network_state state)
                         out.w = out.w*out.w;
                         out.h = out.h*out.h;
                     }
-
+                    // two criteria for box selection
                     float iou  = box_iou(out, truth);
                     //iou = 0;
                     float rmse = box_rmse(out, truth);
@@ -133,7 +154,7 @@ void forward_detection_layer(const detection_layer l, network_state state)
                         best_index = 0;
                     }
                 }
-
+                // selected box and the true box coords
                 int box_index = index + locations*(l.classes + l.n) + (i*l.n + best_index) * l.coords;
                 int tbox_index = truth_index + 1 + l.classes;
 
@@ -147,15 +168,20 @@ void forward_detection_layer(const detection_layer l, network_state state)
                 float iou  = box_iou(out, truth);
 
                 //printf("%d,", best_index);
+                // the best box's confidence
                 int p_index = index + locations*l.classes + i*l.n + best_index;
+                // note that at the beginning we deduct every box confidence error
+                // no matter whether it's one that contains the object
+                // now we just correct it
                 *(l.cost) -= l.noobject_scale * pow(l.output[p_index], 2);
                 *(l.cost) += l.object_scale * pow(1-l.output[p_index], 2);
                 avg_obj += l.output[p_index];
                 l.delta[p_index] = l.object_scale * (1.-l.output[p_index]);
-
+                // note that in the paper how the confidence is defined
                 if(l.rescore){
                     l.delta[p_index] = l.object_scale * (iou - l.output[p_index]);
                 }
+                // seriously cost should be modifed as well, not only the delta
 
                 l.delta[box_index+0] = l.coord_scale*(state.truth[tbox_index + 0] - l.output[box_index + 0]);
                 l.delta[box_index+1] = l.coord_scale*(state.truth[tbox_index + 1] - l.output[box_index + 1]);
@@ -165,7 +191,7 @@ void forward_detection_layer(const detection_layer l, network_state state)
                     l.delta[box_index+2] = l.coord_scale*(sqrt(state.truth[tbox_index + 2]) - l.output[box_index + 2]);
                     l.delta[box_index+3] = l.coord_scale*(sqrt(state.truth[tbox_index + 3]) - l.output[box_index + 3]);
                 }
-
+                // one more strange error term without delta
                 *(l.cost) += pow(1-iou, 2);
                 avg_iou += iou;
                 ++count;

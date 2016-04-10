@@ -108,7 +108,9 @@ void draw_detections(image im, int num, float thresh, box *boxes, float **probs,
     for(i = 0; i < num; ++i){
         int class = max_index(probs[i], classes);
         float prob = probs[i][class];
+        // draw only if the prob > thresh
         if(prob > thresh){
+            // width measured by prob!
             int width = pow(prob, 1./2.)*10+1;
             printf("%s: %.2f\n", names[class], prob);
             int offset = class*17 % classes;
@@ -490,6 +492,7 @@ void show_image_cv(image p, const char *name)
                     int r = j + dy;
                     int c = i + dx;
                     float val = 0;
+                    // crop here
                     if (r >= 0 && r < im.h && c >= 0 && c < im.w) {
                         val = get_pixel(im, c, r, k);
                     }

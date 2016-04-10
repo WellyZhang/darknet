@@ -488,7 +488,7 @@ network parse_network_cfg(char *filename)
     if(!n) error("Config file has no sections");
     network net = make_network(sections->size - 1);
     size_params params;
-
+    // section *s records the [net] specifications
     section *s = (section *)n->val;
     list *options = s->options;
     if(!is_network(s)) error("First section must be [net] or [network]");
@@ -804,7 +804,9 @@ void save_weights_upto(network net, char *filename, int cutoff)
     fprintf(stderr, "Saving weights to %s\n", filename);
     FILE *fp = fopen(filename, "w");
     if(!fp) file_error(filename);
-
+    // weight file structure
+    // major minor revision net.seen
+    // then layer weights in an order
     int major = 0;
     int minor = 1;
     int revision = 0;

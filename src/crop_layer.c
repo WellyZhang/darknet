@@ -62,6 +62,7 @@ void forward_crop_layer(const crop_layer l, network_state state)
     int index;
     int count = 0;
     int flip = (l.flip && rand()%2);
+    // how random crop happens
     int dh = rand()%(l.h - l.out_h + 1);
     int dw = rand()%(l.w - l.out_w + 1);
     float scale = 2;
@@ -87,6 +88,7 @@ void forward_crop_layer(const crop_layer l, network_state state)
                     row = i + dh;
                     index = col+l.w*(row+l.h*(c + l.c*b)); 
                     l.output[count++] = state.input[index]*scale + trans;
+                    // [-1, 1]
                 }
             }
         }
