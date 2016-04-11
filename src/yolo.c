@@ -20,7 +20,6 @@ void train_yolo(char *cfgfile, char *weightfile)
 {
     /* Change training folders here */
     char *train_images = "train.txt";
-
     /* Change output weight folders here */
     char *backup_directory = "backup/";
 
@@ -36,10 +35,9 @@ void train_yolo(char *cfgfile, char *weightfile)
     }
     printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
     int imgs = net.batch*net.subdivisions;
-    // just batch * time_steps in in the .cfg file
+    // just batch * time_steps as in the .cfg file
     int i = *net.seen/imgs;
     data train, buffer;
-
 
     layer l = net.layers[net.n - 1];
     // the last layer
@@ -49,7 +47,7 @@ void train_yolo(char *cfgfile, char *weightfile)
 
     list *plist = get_paths(train_images);
     // a list of paths of training files
-    //int N = plist->size;
+    // int N = plist->size;
     char **paths = (char **)list_to_array(plist);
 
     load_args args = {0};
@@ -66,7 +64,6 @@ void train_yolo(char *cfgfile, char *weightfile)
 
     pthread_t load_thread = load_data_in_thread(args);
     clock_t time;
-    //while(i*imgs < N*120){
     // start minibatch training
     while(get_current_batch(net) < net.max_batches){
         i += 1;
@@ -368,7 +365,6 @@ void test_yolo(char *cfgfile, char *weightfile, char *filename, float thresh)
         printf("%s: Predicted in %f seconds.\n", input, sec(clock()-time));
         convert_yolo_detections(predictions, l.classes, l.n, l.sqrt, l.side, 1, 1, thresh, probs, boxes, 0);
         if (nms) do_nms_sort(boxes, probs, l.side*l.side*l.n, l.classes, nms);
-        //draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, 20);
         draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, CLASSNUM);
         show_image(im, "predictions");
 

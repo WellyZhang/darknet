@@ -1,33 +1,43 @@
-/* How YOLO procedes:
+/* How YOLO Procedes
+ *
  * After calling ./darknet yolo train cfg/yolo-tiny.cfg
- * darknet detects the invocation of yolo.
+ * darknet detects the invocation of YOLO.
+ *
  * In the run_yolo procedure, the subroutine first reads in a bunch of 
- * labelling pictures for visulization then call train_yolo with modified arguments.
- * In the train_yolo procedure, the model name is first read in by calling basecfg(),
+ * label pictures for visulization then call train_yolo with modified arguments.
+ *
+ * In the train_yolo procedure, the model name is first read in by calling basecfg,
  * parameters initialized and then the network is parsed.
+ *
  * In the parse_network_cfg, read_cfg is first called. This function builds a list
- * containing each section's name and its set parameters(as a sublist in the section list).
+ * containing each section's name and the set of its parameters(as a sublist in the section list).
  * Then a network is made by make_network. Note that make_network generates a network construct with
- * #sections - 1(excluding the [net]) layers. The int *seen is currently confusing.
+ * #sections - 1(excluding the [net]) layers. The int *seen records the number of images in the dataset seen.
+ *
  * After the parse_network_cfg is called, the network is properly initialized and parameters
  * specified in the .cfg file are read.
  *
  * load_weights reverses the procedure of save_weights, basically just saving the
- * weights in the layer into the file.
+ * weights in the layer into the file. Note that it ensures consistency by additional data
+ * possibly for checking its correctness.
  *
  * Now the training data is loaded. It is loaded by a dedicated thread. The thread reads by first
  * reading the file that stores the paths of images. Details are commented in the source file.
  *
- * Finally, the training takes place, iterating the number of batches times and computing loss
+ * Finally, the training takes place, iterating [the number of batches] times and computing loss
  * while saving weights at specified batches.
+ *
  * In the train_network function, each subdivision of a batch is trained and the average
  * minibatch error is returned.
  *
- * As for the train_network_datum function that takes an subdivision of a minibatch, it 
- * feeds the data forward to the net work and propagate the error back, updating the weights
- * at the end of each subdivision, similarly to a sub-minibatch training scheme.
+ * As for the train_network_datum function that takes a subdivision of a minibatch, it 
+ * feeds the data forward to the net work and propagates the error back, updating the weights
+ * at the end of each subdivision, somehow properly termed as sub-minibatch training scheme.
  * 
  */
+
+// Useful data structures declared across multiply source files are summarized here for your convinience
+// when referencing.
 
 typedef struct{
     int index;
