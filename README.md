@@ -13,7 +13,7 @@ While using Darknet to run the [YOLO](http://arxiv.org/abs/1506.02640) algorithm
 ## To Run YOLO with Your Own Dataset
 1. Prepare the dataset and annotations.  
   1. Store all your image paths in a single file, such as train.txt.
-  2. For each iamge, there should be an annotation file with the same filename except for its extension that is stored in a specified file. Follow the original instruction on [running YOLO](http://pjreddie.com/darknet/YOLO) as an example.
+  2. For each iamge, there should be an annotation file with the same filename except for its extension that is stored in a specified file. Follow the original instruction on [running YOLO](http://pjreddie.com/darknet/yolo) as an example.
 2. Set the correct paths.
   1. In the yolo.c file, change the *_training_images_* to the file that records your training images paths.
   2. Also in yolo.c, customize your *_backup_directory_* where intermediate weights will be saved.
