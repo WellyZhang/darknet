@@ -10,7 +10,7 @@ For questions or issues please use the [Google Group](https://groups.google.com/
 ## Introduction
 While using Darknet to run the [YOLO](http://arxiv.org/abs/1506.02640) algorithm, I find it a bit hard to adapt the architecture to my own dataset and hard to understand the source code(since there is not a single comment!). Therefore, I forked the original repo and added my own comments for it with instructions here on how to adjust parameters to tune it for your own dataset.
 
-## To Run YOLO with Your Own Dataset
+## Run YOLO with Your Own Dataset
 1. Prepare the dataset and annotations.  
   1. Store all your image paths in a single file, such as train.txt.
   2. For each iamge, there should be an annotation file with the same filename except for its extension that is stored in a specified file. Follow the original instructions on [running YOLO](http://pjreddie.com/darknet/yolo) as an example.
