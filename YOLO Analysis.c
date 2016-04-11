@@ -1,4 +1,4 @@
-/* How YOLO Procedes
+/* How YOLO Proceeds
  *
  * After calling ./darknet yolo train cfg/yolo-tiny.cfg
  * darknet detects the invocation of YOLO.
