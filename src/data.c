@@ -245,7 +245,7 @@ void fill_truth_region(char *path, float *truth, int classes, int num_boxes, int
         int col = (int)(x*num_boxes);
         int row = (int)(y*num_boxes);
 
-        // offsets with in a specific grid cell
+        // offsets within a specific grid cell
         x = x*num_boxes - col;
         y = y*num_boxes - row;
         // index where the object is located
